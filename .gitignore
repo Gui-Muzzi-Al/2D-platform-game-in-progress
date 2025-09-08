@@ -1,0 +1,33 @@
+# Arquivos Python compilados
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+*.env
+
+# Arquivos de log e temporários
+*.log
+*.tmp
+*.bak
+
+# Diretórios de build intermediário do PyInstaller
+build/
+# Mantemos dist/ para que o executável seja incluído no repositório
+
+# Arquivo de configuração do PyInstaller (opcional ignorar)
+*.spec
+
+# Arquivos gerados pelo sistema
+.DS_Store
+Thumbs.db
+
+# Configurações locais do VS Code
+.vscode/
+
+# Arquivos de cache do Pygame (se aplicável)
+*.swp
+*.swo
