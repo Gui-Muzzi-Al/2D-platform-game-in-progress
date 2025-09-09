@@ -1,6 +1,6 @@
 import pygame, os
 from levels import PLATAFORM_LIST
-from config import WIDTH, HEIGHT
+from config import WIDTH, HEIGHT, MAP_WIDTH, MAP_HEIGHT
 
 FPS = 60
 
@@ -49,6 +49,15 @@ def load_jump_frames(path):
             frames.append(img)
     return frames
 
+def load_attack_frames(path):
+    frames = []
+    full_path = resource_path(path)
+    for fname in sorted(os.listdir(full_path)):
+        if fname.endswith('.png'):
+            img = pygame.image.load(os.path.join(full_path, fname)).convert_alpha()
+            frames.append(img)
+    return frames
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, animations, pos):
         super().__init__()
@@ -68,6 +77,7 @@ class Player(pygame.sprite.Sprite):
         self.anim_speed = 100
         self.image = self.anims[self.state][0]
         self.rect = self.image.get_rect(topleft=pos)
+        self.attacking = False
 
         # física
         self.speed_x = 5
@@ -78,13 +88,42 @@ class Player(pygame.sprite.Sprite):
         keys = pygame.key.get_pressed()
 
         moving = False
+
+        if keys[pygame.K_LEFT]:
+            self.facing_right = False
+        if keys[pygame.K_RIGHT]:
+            self.facing_right = True
+
+        # Movimento horizontal
+        moving = False
         if keys[pygame.K_LEFT]:
             self.rect.x -= self.speed_x
             moving = True
         if keys[pygame.K_RIGHT]:
             self.rect.x += self.speed_x
             moving = True
-            self.facing_right = True
+
+
+        if keys[pygame.K_c]:
+            self.attacking = True
+        else:
+            self.attacking = False
+
+        # limit screen horizontal
+
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
+
+        # limit screen horizontal
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > HEIGHT:
+            self.rect.bottom = HEIGHT
+
+
+            
 
         # pulo: toca self.jump_sound em vez de criar novo objeto
         if keys[pygame.K_SPACE] and self.on_ground(platforms):
@@ -102,7 +141,11 @@ class Player(pygame.sprite.Sprite):
                 self.vel_y = 0
 
         # escolhe estado de animação
-        if not self.on_ground(platforms):
+        grounded = self.on_ground(platforms)
+
+        if self.attacking:
+            new_state = 'attack'
+        elif not grounded:
             new_state = 'jump'
         elif moving:
             new_state = 'run'
@@ -116,11 +159,19 @@ class Player(pygame.sprite.Sprite):
 
         # atualiza frame
         self.timer += dt
-        frames = self.anims[self.state]
-        if self.timer >= self.anim_speed:
-            self.timer -= self.anim_speed
-            self.index = (self.index + 1) % len(frames)
-        self.image = frames[self.index]
+        frames = self.anims.get(self.state, [])
+
+        if frames:
+            if self.timer >= self.anim_speed:
+                self.timer -= self.anim_speed
+                self.index = (self.index + 1) % len(frames)
+
+            frame = frames[self.index % len(frames)]
+            self.image = frame if self.facing_right else pygame.transform.flip(frame, True, False)
+        else:
+            print(f"⚠️ Nenhum frame para o estado '{self.state}'")
+            self.image = pygame.Surface((50, 50))
+
 
     def on_ground(self, platforms):
         self.rect.y += 1
@@ -139,11 +190,13 @@ def main():
     run_frames  = load_run_frames("assets/run")
     jump_frames = load_jump_frames("assets/jump")
     idle_frames = load_idle_frames("assets/idle")
+    attack_frames = load_attack_frames("assets/attack")
 
     animations = {
         "idle": idle_frames,
         "jump": jump_frames,
-        "run" : run_frames
+        "run" : run_frames,
+        "attack": attack_frames
     }
 
     player = Player(animations, pos=(50, HEIGHT-100))
